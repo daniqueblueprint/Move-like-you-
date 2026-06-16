@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Move Like You — Blueprint</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #140B0C; --bg-mid: #2A1618; --parchment: #D6D0CD;
+      --parchment2: #D8CCC5; --taupe: #C8BFBB; --wine: #4A1F28; --stone: #8a7e78;
+    }
+    body { background: var(--bg); color: var(--parchment); font-family: 'Jost', sans-serif; font-weight: 300; min-height: 100vh; letter-spacing: 0.03em; }
+    header { padding: 2.5rem 2rem 0; text-align: center; position: relative; }
+    header::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 300px; height: 220px; background: radial-gradient(ellipse at 50% 30%, rgba(214,208,205,0.06) 0%, transparent 70%); pointer-events: none; }
+    .brand { font-family: 'Playfair Display', serif; font-weight: 400; font-size: clamp(2.8rem, 8vw, 5.5rem); letter-spacing: 0.35em; color: var(--parchment); text-transform: uppercase; line-height: 1; text-shadow: 0 0 40px rgba(214,208,205,0.2), 0 0 100px rgba(214,208,205,0.08); }
+    .tagline { font-family: 'Cormorant Garamond', serif; font-size: 0.75rem; letter-spacing: 0.28em; color: var(--taupe); text-transform: lowercase; margin-top: 0.7rem; font-style: italic; }
+    .divider { width: 40px; height: 1px; background: var(--wine); margin: 2.5rem auto; opacity: 0.8; }
+    .hero { text-align: center; padding: 0 1.5rem; max-width: 560px; margin: 0 auto; }
+    .session-name { font-family: 'Cormorant Garamond', serif; font-size: clamp(1.8rem, 5vw, 3rem); font-style: italic; font-weight: 300; color: var(--parchment2); line-height: 1.2; }
+    .session-meta { margin-top: 1.2rem; font-size: 0.7rem; letter-spacing: 0.22em; color: var(--stone); text-transform: uppercase; }
+    .session-desc { margin-top: 1.5rem; font-size: 0.95rem; line-height: 1.85; color: var(--parchment2); opacity: 0.85; }
+    .pricing { display: inline-block; margin-top: 2rem; border: 1px solid var(--wine); padding: 0.7rem 2rem; font-size: 0.68rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--taupe); background: rgba(74,31,40,0.2); }
+    .slots-section { max-width: 560px; margin: 3rem auto 0; padding: 0 1.5rem; }
+    .slots-label { font-size: 0.62rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--stone); margin-bottom: 1.2rem; text-align: center; }
+    .day-group { margin-bottom: 2rem; }
+    .day-title { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-style: italic; color: var(--parchment2); margin-bottom: 0.8rem; letter-spacing: 0.05em; }
+    .slot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+    .slot { border: 1px solid rgba(74,31,40,0.5); padding: 0.9rem 1rem; cursor: pointer; transition: all 0.2s ease; position: relative; background: rgba(42,22,24,0.5); color: var(--parchment); font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.85rem; letter-spacing: 0.08em; text-align: left; }
+    .slot:hover:not(.booked) { border-color: var(--wine); background: rgba(74,31,40,0.3); }
+    .slot.selected { border-color: var(--taupe); background: rgba(74,31,40,0.4); }
+    .slot.selected::after { content: '✓'; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--taupe); font-size: 0.75rem; }
+    .slot.booked { opacity: 0.3; cursor: not-allowed; pointer-events: none; text-decoration: line-through; }
+    .slot.booked::after { content: 'Vol'; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--stone); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; }
+    .slot-time { display: block; font-size: 1rem; color: var(--parchment); }
+    .slot-duration { display: block; font-size: 0.62rem; letter-spacing: 0.15em; color: var(--stone); margin-top: 0.2rem; text-transform: uppercase; }
+    .form-section { max-width: 560px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+    .form-group { margin-bottom: 1.4rem; }
+    label { display: block; font-size: 0.62rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--stone); margin-bottom: 0.5rem; }
+    input, textarea { width: 100%; background: transparent; border: none; border-bottom: 1px solid rgba(74,31,40,0.6); padding: 0.6rem 0; color: var(--parchment); font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.95rem; letter-spacing: 0.05em; outline: none; transition: border-color 0.2s; }
+    input:focus, textarea:focus { border-bottom-color: var(--taupe); }
+    input::placeholder, textarea::placeholder { color: var(--stone); opacity: 0.5; }
+    textarea { resize: none; height: 80px; }
+    .submit-btn { width: 100%; margin-top: 2rem; padding: 1.1rem; background: var(--wine); border: 1px solid var(--wine); color: var(--parchment); font-family: 'Jost', sans-serif; font-weight: 300; font-size: 0.72rem; letter-spacing: 0.3em; text-transform: uppercase; cursor: pointer; transition: all 0.25s ease; }
+    .submit-btn:hover { background: transparent; border-color: var(--taupe); color: var(--taupe); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .success-msg { display: none; text-align: center; padding: 3rem 1.5rem; max-width: 560px; margin: 0 auto; }
+    .success-msg.visible { display: block; }
+    .success-title { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-style: italic; color: var(--parchment2); margin-bottom: 1rem; }
+    .success-text { font-size: 0.9rem; color: var(--stone); line-height: 1.8; }
+    footer { text-align: center; padding: 2rem; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 0.75rem; letter-spacing: 0.18em; color: var(--wine); opacity: 0.8; }
+    .error-hint { font-size: 0.7rem; color: #a05060; margin-top: 0.4rem; display: none; }
+    .error-hint.show { display: block; }
+    #err-slot { margin-bottom: 0.6rem; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">Blueprint</div>
+    <div class="tagline">identity · energy · movement</div>
+  </header>
+
+  <div class="divider"></div>
+
+  <div class="hero">
+    <div class="session-name">Move Like You</div>
+    <div class="session-meta">90 minuten · Persoonlijke sessie</div>
+    <p class="session-desc">
+      Een sessie van 90 minuten, helemaal voor jou. We werken met beweging, muziek en wat er op dat moment in jou leeft. Er is geen vaste structuur, geen goed of fout. Je hoeft niks te kunnen. Alleen maar aanwezig te zijn.
+    </p>
+    <div class="pricing">Introductieprijs · €89</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="slots-section">
+    <div class="slots-label">Kies jouw tijdstip</div>
+    <div class="day-group">
+      <div class="day-title">Vrijdag 3 juli</div>
+      <div class="slot-grid">
+        <button class="slot" data-slot="vr-1" onclick="selectSlot(this)">
+          <span class="slot-time">13:00</span>
+          <span class="slot-duration">t/m 14:30</span>
+        </button>
+        <button class="slot" data-slot="vr-2" onclick="selectSlot(this)">
+          <span class="slot-time">15:30</span>
+          <span class="slot-duration">t/m 17:00</span>
+        </button>
+      </div>
+    </div>
+    <div class="day-group">
+      <div class="day-title">Zaterdag 4 juli</div>
+      <div class="slot-grid">
+        <button class="slot" data-slot="za-1" onclick="selectSlot(this)">
+          <span class="slot-time">10:00</span>
+          <span class="slot-duration">t/m 11:30</span>
+        </button>
+        <button class="slot" data-slot="za-2" onclick="selectSlot(this)">
+          <span class="slot-time">12:30</span>
+          <span class="slot-duration">t/m 14:00</span>
+        </button>
+        <button class="slot" data-slot="za-3" onclick="selectSlot(this)">
+          <span class="slot-time">15:30</span>
+          <span class="slot-duration">t/m 17:00</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section" id="formSection">
+    <div class="form-group">
+      <label>Je naam</label>
+      <input type="text" id="naam" placeholder="Voornaam en achternaam" />
+      <div class="error-hint" id="err-naam">Vul je naam in</div>
+    </div>
+    <div class="form-group">
+      <label>WhatsApp nummer</label>
+      <input type="tel" id="telefoon" placeholder="+31 6 ..." />
+      <div class="error-hint" id="err-telefoon">Vul je nummer in</div>
+    </div>
+    <div class="form-group">
+      <label>Geboortedatum + geboortetijd</label>
+      <input type="text" id="geboorte" placeholder="bijv. 14 maart 1993, 07:42" />
+      <div class="error-hint" id="err-geboorte">Dit heb ik nodig om de sessie goed op jou af te stemmen</div>
+    </div>
+    <div class="form-group">
+      <label>Geboorteplaats</label>
+      <input type="text" id="plaats" placeholder="Stad waar je geboren bent" />
+    </div>
+    <div class="form-group">
+      <label>Wat wil je loslaten of ontdekken?</label>
+      <textarea id="intentie" placeholder="Vertel me wat er nu speelt..."></textarea>
+    </div>
+    <div class="error-hint" id="err-slot">Kies eerst een tijdstip hierboven</div>
+    <button class="submit-btn" id="submitBtn" onclick="submitForm()">Mijn plek bevestigen</button>
+  </div>
+
+  <div class="success-msg" id="successMsg">
+    <div class="success-title">Fijn dat je er bent ✨</div>
+    <p class="success-text">
+      Je aanvraag is ontvangen.<br/>
+      Je hoort zo snel mogelijk van mij via WhatsApp<br/>
+      met een Tikkie van €89 om je plek vast te zetten.
+    </p>
+  </div>
+
+  <footer>see. choose. move.</footer>
+
+  <script>
+    const SUPABASE_URL = 'https://pketrgjfdnoyiyiudrjf.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrZXRyZ2pmZG5veWl5aXVkcmpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NzAzMjYsImV4cCI6MjA5NzE0NjMyNn0.Y-haztA3k8LW3x92TkHuCYWtbzsQdFAsU848FBCNKyQ';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let selectedSlot = null;
+
+    async function loadBoekingen() {
+      const { data } = await supabase.from('boekingen').select('tijdslot');
+      if (data) {
+        data.forEach(row => {
+          const btn = document.querySelector(`[data-slot="${row.tijdslot}"]`);
+          if (btn) btn.classList.add('booked');
+        });
+      }
+    }
+
+    function selectSlot(el) {
+      if (el.classList.contains('booked')) return;
+      document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedSlot = el.dataset.slot;
+      document.getElementById('err-slot').classList.remove('show');
+    }
+
+    async function submitForm() {
+      let valid = true;
+      const naam = document.getElementById('naam').value.trim();
+      const telefoon = document.getElementById('telefoon').value.trim();
+      const geboorte = document.getElementById('geboorte').value.trim();
+      const plaats = document.getElementById('plaats').value.trim();
+      const intentie = document.getElementById('intentie').value.trim();
+
+      document.getElementById('err-naam').classList.toggle('show', !naam);
+      document.getElementById('err-telefoon').classList.toggle('show', !telefoon);
+      document.getElementById('err-geboorte').classList.toggle('show', !geboorte);
+      if (!naam || !telefoon || !geboorte) valid = false;
+      if (!selectedSlot) { document.getElementById('err-slot').classList.add('show'); valid = false; }
+      if (!valid) return;
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Even geduld...';
+
+      const { error } = await supabase.from('boekingen').insert([{
+        tijdslot: selectedSlot, naam, telefoon,
+        geboortedatum: geboorte, geboorteplaats: plaats, intentie
+      }]);
+
+      if (error) {
+        btn.disabled = false;
+        btn.textContent = 'Mijn plek bevestigen';
+        alert('Er ging iets mis. Probeer het opnieuw.');
+        return;
+      }
+
+      document.getElementById('formSection').style.display = 'none';
+      document.getElementById('successMsg').classList.add('visible');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    loadBoekingen();
+  </script>
+
+</body>
+</html>
